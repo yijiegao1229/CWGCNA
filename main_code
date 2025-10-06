@@ -1,0 +1,51 @@
+library(dynamicTreeCut)
+library(fastcluster)
+library(WGCNA)
+library(usethis)
+library(devtools)
+library(CWGCNA)
+options(stringsAsFactors = FALSE)
+
+input<- read.csv("32FPKM.csv",row.names = 1)
+inputs = as.matrix(input)
+traits<-read.csv("32trait.csv",sep=',',header=TRUE,row.names=1)
+
+top10k <- featuresampling(betas = inputs,  # 特征矩阵
+                          topfeatures = 5000,  # 仅选择前10000个最具变异性的DNAm探针构成的数据矩阵
+                          variancetype = "sd",  # 定义如何计算方差
+                          threads = 6)  # 并行化的线程数量
+
+anovares <- featuresampling(betas = top10k$betas,  # 使用 betas
+                            pddat = traits,   # 性状数据
+                            anova = TRUE,  # 执行 ANOVA
+                            plotannovares = TRUE, # 绘制数据的ANOVA结果
+                            featuretype = "probe",  
+                            plottitlesuffix = "placenta", # 显示在图表标题中的字符
+                            titlesize = 18, 
+                            textsize = 16, 
+                            threads = 6)
+
+
+cwgcnares <- diffwgcna(dat = inputs, 
+                       pddat = traits, 
+                       responsevarname = "speed", #最显著性状，最好2分类变量
+                       confoundings = c("ADG", "Group"), #2个次要性状
+                       featuretype = "gene", 
+                       topvaricancetype = "sd", 
+                       topvaricance = 5000,
+                       powers = seq(1, 20, 1), 
+                       rsqcutline = 0.8, 
+                       mediation = TRUE, 
+                       topn = 1, 
+                       plot = TRUE, 
+                       titleprefix = "Placenta", 
+                       labelnum = 5, 
+                       titlesize = 17, 
+                       textsize = 16, 
+                       annotextsize = 5, 
+                       pvalcolname = "adj.P.Val", 
+                       pvalcutoff = 0.05, 
+                       isbetaval = TRUE, 
+                       absxcutoff = 0, 
+                       diffcutoff = 0, 
+                       threads = 6)
